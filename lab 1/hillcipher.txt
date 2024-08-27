@@ -1,0 +1,170 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+const int MATRIX_SIZE = 3;
+const int MOD = 26;
+
+int determinant(int matrix[MATRIX_SIZE][MATRIX_SIZE], int mod) {
+    int det = (matrix[0][0] * (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1])
+             - matrix[0][1] * (matrix[1][0] * matrix[2][2] - matrix[1][2] * matrix[2][0])
+             + matrix[0][2] * (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0])) % mod;
+    return (det + mod) % mod; // Ensure positive determinant
+}
+
+int modInverse(int a, int mod) {
+    a = a % mod;
+    for (int x = 1; x < mod; x++) {
+        if ((a * x) % mod == 1)
+            return x;
+    }
+    return -1;
+}
+
+void adjugate(int matrix[MATRIX_SIZE][MATRIX_SIZE], int adj[MATRIX_SIZE][MATRIX_SIZE], int mod) {
+    adj[0][0] = (matrix[1][1] * matrix[2][2] - matrix[1][2] * matrix[2][1]) % mod;
+    adj[0][1] = (matrix[0][2] * matrix[2][1] - matrix[0][1] * matrix[2][2]) % mod;
+    adj[0][2] = (matrix[0][1] * matrix[1][2] - matrix[0][2] * matrix[1][1]) % mod;
+    adj[1][0] = (matrix[1][2] * matrix[2][0] - matrix[1][0] * matrix[2][2]) % mod;
+    adj[1][1] = (matrix[0][0] * matrix[2][2] - matrix[0][2] * matrix[2][0]) % mod;
+    adj[1][2] = (matrix[1][0] * matrix[0][2] - matrix[0][0] * matrix[1][2]) % mod;
+    adj[2][0] = (matrix[1][0] * matrix[2][1] - matrix[1][1] * matrix[2][0]) % mod;
+    adj[2][1] = (matrix[0][1] * matrix[2][0] - matrix[0][0] * matrix[2][1]) % mod;
+    adj[2][2] = (matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]) % mod;
+
+    // Ensure positive adjugate values
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        for (int j = 0; j < MATRIX_SIZE; j++) {
+            adj[i][j] = (adj[i][j] + mod) % mod;
+        }
+    }
+}
+
+void inverse(int matrix[MATRIX_SIZE][MATRIX_SIZE], int inverseMatrix[MATRIX_SIZE][MATRIX_SIZE], int mod) {
+    int det = determinant(matrix, mod);
+    int detInv = modInverse(det, mod);
+    if (detInv == -1) {
+        cout << "Inverse does not exist!" << endl;
+        exit(1);
+    }
+
+    int adj[MATRIX_SIZE][MATRIX_SIZE];
+    adjugate(matrix, adj, mod);
+
+    for (int i = 0; i < MATRIX_SIZE; i++)
+        for (int j = 0; j < MATRIX_SIZE; j++)
+            inverseMatrix[i][j] = (adj[i][j] * detInv) % mod;
+
+    // Ensure positive values in the inverse matrix
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        for (int j = 0; j < MATRIX_SIZE; j++) {
+            inverseMatrix[i][j] = (inverseMatrix[i][j] + mod) % mod;
+        }
+    }
+}
+
+void getKeyMatrix(string key, int keyMatrix[MATRIX_SIZE][MATRIX_SIZE]) {
+    int k = 0;
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        for (int j = 0; j < MATRIX_SIZE; j++) {
+            keyMatrix[i][j] = islower(key[k]) ? key[k] - 'a' : key[k] - 'A';
+            k++;
+        }
+    }
+}
+
+void encrypt(int cipherMatrix[MATRIX_SIZE][1], int keyMatrix[MATRIX_SIZE][MATRIX_SIZE], int messageVector[MATRIX_SIZE][1]) {
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        cipherMatrix[i][0] = 0;
+        for (int x = 0; x < MATRIX_SIZE; x++) {
+            cipherMatrix[i][0] += keyMatrix[i][x] * messageVector[x][0];
+        }
+        cipherMatrix[i][0] = (cipherMatrix[i][0] % MOD + MOD) % MOD;
+    }
+}
+
+void decrypt(int messageVector[MATRIX_SIZE][1], int inverseKeyMatrix[MATRIX_SIZE][MATRIX_SIZE], int cipherMatrix[MATRIX_SIZE][1]) {
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        messageVector[i][0] = 0;
+        for (int x = 0; x < MATRIX_SIZE; x++) {
+            messageVector[i][0] += inverseKeyMatrix[i][x] * cipherMatrix[x][0];
+        }
+        messageVector[i][0] = (messageVector[i][0] % MOD + MOD) % MOD;
+    }
+}
+
+string HillCipher(string message, string key) {
+    int keyMatrix[MATRIX_SIZE][MATRIX_SIZE];
+    getKeyMatrix(key, keyMatrix);
+
+    int messageVector[MATRIX_SIZE][1];
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        messageVector[i][0] = islower(message[i]) ? message[i] - 'a' : message[i] - 'A';
+    }
+
+    int cipherMatrix[MATRIX_SIZE][1];
+    encrypt(cipherMatrix, keyMatrix, messageVector);
+
+    string CipherText;
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        CipherText += cipherMatrix[i][0] + 'A';
+    }
+
+    return CipherText;
+}
+
+string HillDecipher(string cipher, string key) {
+    int keyMatrix[MATRIX_SIZE][MATRIX_SIZE];
+    getKeyMatrix(key, keyMatrix);
+
+    int inverseKeyMatrix[MATRIX_SIZE][MATRIX_SIZE];
+    inverse(keyMatrix, inverseKeyMatrix, MOD);
+
+    int cipherMatrix[MATRIX_SIZE][1];
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        cipherMatrix[i][0] = islower(cipher[i]) ? cipher[i] - 'a' : cipher[i] - 'A';
+    }
+
+    int messageVector[MATRIX_SIZE][1];
+    decrypt(messageVector, inverseKeyMatrix, cipherMatrix);
+
+    string PlainText;
+    for (int i = 0; i < MATRIX_SIZE; i++) {
+        PlainText += messageVector[i][0] + 'A';
+    }
+
+    return PlainText;
+}
+
+int main() {
+    string message;
+    cout << "Enter Text: (Length multiple of 3)" << endl;
+    getline(cin, message);
+
+    string key;
+    cout << "Enter Key: (9 characters)" << endl;
+    cin >> key;
+
+    if (message.size() % MATRIX_SIZE != 0) {
+        cout << "Message length should be a multiple of " << MATRIX_SIZE << endl;
+    } else if (key.size() != MATRIX_SIZE * MATRIX_SIZE) {
+        cout << "Key length should be exactly " << MATRIX_SIZE * MATRIX_SIZE << " characters." << endl;
+    } else {
+        string result = "";
+        for (int i = 0; i < message.size(); i += MATRIX_SIZE) {
+            string block = message.substr(i, MATRIX_SIZE);
+            string temp = HillCipher(block, key);
+            result += temp;
+        }
+        cout << "Encrypted Message: " << result << endl;
+
+        string decryptedResult = "";
+        for (int i = 0; i < result.size(); i += MATRIX_SIZE) {
+            string block = result.substr(i, MATRIX_SIZE);
+            string temp = HillDecipher(block, key);
+            decryptedResult += temp;
+        }
+        cout << "Decrypted Message: " << decryptedResult << endl;
+    }
+
+    return 0;
+}

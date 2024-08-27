@@ -1,0 +1,75 @@
+#include <iostream>
+#include <string>
+#include <cctype>
+
+using namespace std;
+
+// Function to find the modular inverse of a under modulo m
+int modInverse(int a, int m) {
+    a = a % m;
+    for (int x = 1; x < m; x++) {
+        if ((a * x) % m == 1)  // The correct condition for the inverse
+            return x;
+    }
+    return -1; // Return -1 if no modular inverse is found
+}
+
+string affineEncrypt(string plaintext, int a, int b) {
+    string ciphertext = "";
+    int m = 26;
+   
+    for (char &c : plaintext) {
+        if (isalpha(c)) {
+            int x = toupper(c) - 'A';
+            int encryptedChar = (a * x + b) % m;
+            ciphertext += (encryptedChar + 'A');
+        } else {
+            ciphertext += c;
+        }
+    }
+   
+    return ciphertext;
+}
+
+string affineDecrypt(string ciphertext, int a, int b) {
+    string plaintext = "";
+    int m = 26;
+    int a_inv = modInverse(a, m);
+
+    if (a_inv == -1) {
+        cout << "Inverse doesn't exist for the given a and m. Decryption not possible." << endl;
+        return "";
+    }
+   
+    for (char &c : ciphertext) {
+        if (isalpha(c)) {
+            int y = toupper(c) - 'A';
+            int decryptedChar = (a_inv * (y - b + m)) % m;
+            plaintext += (decryptedChar + 'A');
+        } else {
+            plaintext += c;
+        }
+    }
+   
+    return plaintext;
+}
+
+int main() {
+    int a, b;
+    cout << "Enter values of a and b: ";
+    cin >> a >> b;
+    cin.ignore();  // Ignore the newline character left in the buffer
+
+    string plaintext;
+    cout << "Enter plain text: ";
+    getline(cin, plaintext);  // Use getline to capture the entire line
+
+    string ciphertext = affineEncrypt(plaintext, a, b);
+    string decryptedText = affineDecrypt(ciphertext, a, b);
+
+    cout << "Plaintext: " << plaintext << endl;
+    cout << "Ciphertext: " << ciphertext << endl;
+    cout << "Decrypted text: " << decryptedText << endl;
+   
+    return 0;
+}
